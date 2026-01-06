@@ -28,10 +28,21 @@ This lab teaches students to build a complete serverless REST API system with mo
 ## Architecture
 
 ```
-User → S3 Static Website → API Gateway → Lambda → DynamoDB
-                                ↓
-                          CloudWatch (Monitoring)
+User → CloudFront (CDN) → S3 Static Website
+         ↓
+    WAF (Security) → API Gateway → Lambda (in VPC) → DynamoDB
+                          ↓                              ↑
+                    CloudWatch ←→ SNS              VPC Endpoint
+                    (Monitoring)  (Alerts)         (Private Access)
 ```
+
+**Production-Grade Components:**
+- **CloudFront**: Global CDN for low-latency content delivery
+- **WAF**: Web Application Firewall protecting API from attacks
+- **VPC**: Network isolation with private subnets for Lambda
+- **VPC Endpoints**: Private access to DynamoDB (no internet required)
+- **SNS**: Automated email notifications for alarms
+- **CloudWatch**: Comprehensive monitoring and alerting
 
 ## Use Case: Product Inventory Search
 
@@ -47,8 +58,11 @@ Students build a searchable product inventory system where users can:
 1. **Serverless Architecture**: Understand event-driven, serverless computing
 2. **Infrastructure as Code**: Learn Terraform for reproducible deployments
 3. **API Design**: Build RESTful APIs with proper error handling
-4. **Monitoring**: Implement observability with CloudWatch
-5. **Cost Optimization**: Understand serverless pricing models
+4. **Security**: Implement WAF rules and VPC network isolation
+5. **CDN**: Configure CloudFront for global content delivery
+6. **Monitoring**: Implement comprehensive observability with CloudWatch
+7. **Notifications**: Set up automated alerts with SNS
+8. **Cost Optimization**: Understand serverless pricing and VPC endpoints
 
 ## Quick Start for Instructors
 
@@ -82,9 +96,9 @@ Follow `lab-guide.md` starting from Step 1
 #### For Terraform Lab
 ```bash
 cd terraform
-terraform init
-terraform plan
-terraform apply
+
+# Set your email for SNS notifications
+terraform apply -var="alert_email=your-email@example.com"
 ```
 
 Get the outputs:
@@ -92,7 +106,10 @@ Get the outputs:
 terraform output
 ```
 
-Update the website with the API URL and re-apply.
+**Important**: After deployment:
+1. Check your email and confirm SNS subscription
+2. Copy the CloudFront URL to access the website
+3. The API Gateway URL is already configured in the website
 
 ### Testing
 
@@ -153,11 +170,20 @@ With AWS Free Tier:
 - **Lambda**: Free (1M requests/month)
 - **API Gateway**: Free for 12 months (1M requests/month)
 - **S3**: ~$0.023/GB/month
+- **CloudFront**: Free for 12 months (1TB data transfer, 10M requests)
+- **WAF**: ~$5/month (Web ACL) + $1 per million requests
+- **SNS**: Free (1,000 email notifications/month)
 - **CloudWatch**: Free tier (10 metrics, 5GB logs)
+- **VPC**: Free (VPC, subnets, security groups, VPC endpoints)
 
-**Estimated cost per student**: $0-2/month for light usage
+**Estimated cost per student**: $5-10/month (mainly WAF)
 
-**Recommendation**: Have students clean up resources after completion.
+**Cost Savings**:
+- ✅ No NAT Gateway (~$32/month saved)
+- ✅ Gateway VPC endpoints are free
+- ✅ Serverless = pay only for usage
+
+**Recommendation**: Have students clean up resources after completion, or disable WAF to reduce costs to ~$0-2/month.
 
 ## Grading
 
@@ -173,10 +199,13 @@ See `student-instructions.md` for detailed rubric.
 ## Common Student Issues
 
 1. **CORS Errors**: Most common issue - ensure OPTIONS method and headers are configured
-2. **IAM Permissions**: Students often forget to attach DynamoDB policy to Lambda role
-3. **S3 Public Access**: Bucket policy and public access settings must both be configured
-4. **API URL**: Students forget to update the website with their actual API URL
-5. **Terraform State**: Explain state management and locking
+2. **IAM Permissions**: Students often forget VPC execution role for Lambda
+3. **VPC Cold Starts**: Lambda in VPC takes 10-15 seconds on first invocation
+4. **CloudFront Caching**: Students forget to invalidate cache after updates
+5. **WAF Blocking**: Overly restrictive rules may block legitimate requests
+6. **SNS Confirmation**: Students must confirm email subscription
+7. **VPC Endpoints**: Must be associated with correct route tables
+8. **Terraform State**: Explain state management and locking
 
 ## Extension Ideas
 

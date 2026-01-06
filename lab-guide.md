@@ -4,16 +4,23 @@
 Build a serverless product inventory search system using AWS services, first manually through the console, then automate with Terraform. Add monitoring to track usage and performance.
 
 ## Architecture
+- **CDN**: CloudFront distribution for global content delivery
 - **Frontend**: Static website hosted on S3
+- **Security**: WAF (Web Application Firewall) for API protection
+- **Network**: VPC with private subnets for Lambda
 - **API Layer**: API Gateway REST API
-- **Compute**: Lambda function (Python)
-- **Database**: DynamoDB
+- **Compute**: Lambda function (Python) in VPC
+- **Database**: DynamoDB (accessed via VPC endpoint)
 - **Monitoring**: CloudWatch (metrics, logs, alarms)
+- **Notifications**: SNS for alerts and notifications
 
 ## Learning Objectives
-- Deploy serverless REST API architecture
+- Deploy production-grade serverless REST API architecture
 - Implement Infrastructure as Code with Terraform
 - Configure CloudWatch monitoring and alarms
+- Secure APIs with WAF rules
+- Distribute content globally with CloudFront
+- Set up automated notifications with SNS
 - Understand AWS service integration
 
 ---
@@ -72,7 +79,59 @@ Build a serverless product inventory search system using AWS services, first man
 }
 ```
 
-### Step 3: Create Lambda Function
+### Step 3: Create VPC and Subnets
+
+**Why VPC?** Placing Lambda in a VPC provides network isolation and allows private communication with AWS services.
+
+1. Navigate to **VPC Console**
+2. Click **Create VPC**
+3. Configure:
+   - **Resources to create**: VPC and more
+   - **Name tag**: `ProductInventory-VPC`
+   - **IPv4 CIDR block**: `10.0.0.0/16`
+   - **Number of Availability Zones**: 2
+   - **Number of public subnets**: 2
+   - **Number of private subnets**: 2
+   - **NAT gateways**: None (we'll use VPC endpoints instead)
+   - **VPC endpoints**: S3 Gateway
+4. Click **Create VPC**
+
+**Note the following IDs** (you'll need them later):
+- VPC ID
+- Private Subnet IDs (2 subnets)
+- Security Group ID (default)
+
+### Step 4: Create VPC Endpoint for DynamoDB
+
+**Why VPC Endpoint?** Allows Lambda to access DynamoDB without needing internet access or NAT Gateway (saves cost).
+
+1. In **VPC Console**, go to **Endpoints**
+2. Click **Create endpoint**
+3. Configure:
+   - **Name**: `ProductInventory-DynamoDB-Endpoint`
+   - **Service category**: AWS services
+   - **Service name**: Search for `dynamodb` → Select `com.amazonaws.[region].dynamodb` (Gateway type)
+   - **VPC**: Select `ProductInventory-VPC`
+   - **Route tables**: Select all route tables associated with your private subnets
+   - **Policy**: Full access
+4. Click **Create endpoint**
+
+### Step 5: Create Security Group for Lambda
+
+1. In **VPC Console**, go to **Security Groups**
+2. Click **Create security group**
+3. Configure:
+   - **Name**: `ProductInventory-Lambda-SG`
+   - **Description**: Security group for Lambda function
+   - **VPC**: Select `ProductInventory-VPC`
+4. **Outbound rules**:
+   - Keep default (All traffic to 0.0.0.0/0)
+   - This allows Lambda to call DynamoDB via VPC endpoint
+5. **Inbound rules**: None needed (Lambda doesn't receive inbound traffic)
+6. Click **Create security group**
+7. **Copy the Security Group ID**
+
+### Step 6: Create Lambda Function
 
 1. Navigate to **Lambda Console**
 2. Click **Create function**
@@ -80,9 +139,18 @@ Build a serverless product inventory search system using AWS services, first man
    - **Function name**: `ProductSearchFunction`
    - **Runtime**: Python 3.12
    - **Architecture**: x86_64
+   - **Advanced settings** → Expand
+   - **Enable VPC**: ✓ (checked)
+   - **VPC**: Select `ProductInventory-VPC`
+   - **Subnets**: Select both **private subnets**
+   - **Security groups**: Select `ProductInventory-Lambda-SG`
 4. Click **Create function**
 
-5. Replace the function code with:
+**Note**: Lambda in VPC takes longer to cold start (~10-15 seconds first time)
+
+5. **Wait 1-2 minutes** for VPC configuration to complete
+
+6. Replace the function code with:
 
 ```python
 import json
@@ -169,17 +237,42 @@ def lambda_handler(event, context):
         }
 ```
 
-6. Click **Deploy**
+7. Click **Deploy**
 
-### Step 4: Configure Lambda IAM Role
+### Step 7: Configure Lambda IAM Role
+
+**Lambda in VPC needs additional permissions** to create network interfaces.
 
 1. In the Lambda function, go to **Configuration** → **Permissions**
 2. Click on the **Role name** (opens IAM console)
 3. Click **Add permissions** → **Attach policies**
-4. Search and attach: `AmazonDynamoDBReadOnlyAccess`
-5. Click **Attach policy**
+4. Search and attach these policies:
+   - `AmazonDynamoDBReadOnlyAccess` (for DynamoDB access)
+   - `AWSLambdaVPCAccessExecutionRole` (for VPC network interfaces)
+5. Click **Attach policies**
 
-### Step 5: Create API Gateway
+**Verify permissions**: The role should now have:
+- AmazonDynamoDBReadOnlyAccess
+- AWSLambdaVPCAccessExecutionRole
+- AWSLambdaBasicExecutionRole (auto-created)
+
+### Step 8: Test Lambda in VPC
+
+1. Go back to Lambda function
+2. Click **Test** tab
+3. Create a test event:
+```json
+{
+  "httpMethod": "GET",
+  "queryStringParameters": null
+}
+```
+4. Click **Test**
+5. Should return products successfully (may take 10-15 seconds on first run due to VPC cold start)
+
+**If it fails**: Check that VPC endpoint for DynamoDB is created and associated with the correct route tables.
+
+### Step 9: Create API Gateway
 
 1. Navigate to **API Gateway Console**
 2. Click **Create API**
@@ -189,7 +282,7 @@ def lambda_handler(event, context):
    - **Endpoint Type**: Regional
 5. Click **Create API**
 
-### Step 6: Configure API Resources and Methods
+### Step 10: Configure API Resources and Methods
 
 1. Click **Actions** → **Create Resource**
    - **Resource Name**: `products`
@@ -209,7 +302,7 @@ def lambda_handler(event, context):
    - Keep defaults → **Enable CORS and replace existing CORS headers**
    - Confirm
 
-### Step 7: Deploy API
+### Step 11: Deploy API
 
 1. Click **Actions** → **Deploy API**
 2. Configure:
@@ -218,7 +311,7 @@ def lambda_handler(event, context):
 3. Click **Deploy**
 4. **Copy the Invoke URL** (e.g., `https://abc123.execute-api.us-east-1.amazonaws.com/prod`)
 
-### Step 8: Create S3 Bucket for Static Website
+### Step 12: Create S3 Bucket for Static Website
 
 1. Navigate to **S3 Console**
 2. Click **Create bucket**
@@ -229,7 +322,7 @@ def lambda_handler(event, context):
    - Acknowledge the warning
 4. Click **Create bucket**
 
-### Step 9: Enable Static Website Hosting
+### Step 13: Enable Static Website Hosting
 
 1. Open your bucket → **Properties** tab
 2. Scroll to **Static website hosting** → **Edit**
@@ -240,7 +333,7 @@ def lambda_handler(event, context):
 4. Click **Save changes**
 5. **Copy the Bucket website endpoint URL**
 
-### Step 10: Configure Bucket Policy
+### Step 14: Configure Bucket Policy
 
 1. Go to **Permissions** tab
 2. Scroll to **Bucket policy** → **Edit**
@@ -263,7 +356,7 @@ def lambda_handler(event, context):
 
 4. Click **Save changes**
 
-### Step 11: Create and Upload Static Website
+### Step 15: Create and Upload Static Website
 
 Create `index.html` with this content (replace `YOUR-API-GATEWAY-URL`):
 
@@ -639,27 +732,126 @@ Upload to S3:
 3. Select `index.html`
 4. Click **Upload**
 
-### Step 12: Test the Application
+### Step 16: Create SNS Topic for Notifications
 
-1. Open the **S3 website endpoint URL** (from Step 9)
+1. Navigate to **SNS Console**
+2. Click **Topics** → **Create topic**
+3. Configure:
+   - **Type**: Standard
+   - **Name**: `ProductInventoryAlerts`
+   - **Display name**: `Product Alerts`
+4. Click **Create topic**
+5. **Copy the Topic ARN**
+
+### Step 17: Create SNS Subscription
+
+1. In the topic details, click **Create subscription**
+2. Configure:
+   - **Protocol**: Email
+   - **Endpoint**: Your email address
+3. Click **Create subscription**
+4. **Check your email** and click the confirmation link
+5. Status should change to "Confirmed"
+
+### Step 18: Create CloudFront Distribution
+
+1. Navigate to **CloudFront Console**
+2. Click **Create distribution**
+3. Configure **Origin**:
+   - **Origin domain**: Select your S3 bucket website endpoint (use the format: `bucket-name.s3-website-region.amazonaws.com`)
+   - **Protocol**: HTTP only (for S3 website endpoint)
+   - **Name**: Leave default
+4. Configure **Default cache behavior**:
+   - **Viewer protocol policy**: Redirect HTTP to HTTPS
+   - **Allowed HTTP methods**: GET, HEAD, OPTIONS
+   - **Cache policy**: CachingOptimized
+5. Configure **Settings**:
+   - **Price class**: Use all edge locations (best performance)
+   - **Alternate domain name (CNAME)**: Leave empty (or add your custom domain)
+   - **Default root object**: `index.html`
+6. Click **Create distribution**
+7. **Wait 5-10 minutes** for deployment (Status: "Enabled")
+8. **Copy the Distribution domain name** (e.g., `d1234abcd.cloudfront.net`)
+
+**Note**: You'll need to update the website to use the CloudFront URL instead of direct S3 access.
+
+### Step 19: Create WAF Web ACL
+
+1. Navigate to **WAF & Shield Console**
+2. Click **Web ACLs** → **Create web ACL**
+3. Configure **Web ACL details**:
+   - **Name**: `ProductInventoryWAF`
+   - **Resource type**: Regional resources (API Gateway)
+   - **Region**: Same as your API Gateway
+4. Click **Next**
+
+5. **Add AWS managed rule groups**:
+   - Click **Add rules** → **Add managed rule groups**
+   - Expand **AWS managed rule groups**
+   - Enable these rule groups:
+     - ✓ **Core rule set** (protects against common threats)
+     - ✓ **Known bad inputs** (blocks malicious patterns)
+     - ✓ **SQL database** (SQL injection protection)
+   - Click **Add rules**
+6. Click **Next**
+
+7. **Set rule priority**: Keep default order
+8. Click **Next**
+
+9. **Configure metrics**: Keep defaults
+10. Click **Next**
+
+11. **Review and create**: Click **Create web ACL**
+
+### Step 20: Associate WAF with API Gateway
+
+1. In the WAF Web ACL details, go to **Associated AWS resources**
+2. Click **Add AWS resources**
+3. Select **API Gateway**
+4. Choose your `ProductInventoryAPI` → stage `prod`
+5. Click **Add**
+
+**Note**: WAF will now protect your API from common attacks.
+
+### Step 21: Update Website to Use CloudFront
+
+1. Go to your S3 bucket
+2. Download the `index.html` file
+3. Update the API URL to use your API Gateway URL (keep this the same)
+4. Re-upload the file to S3
+5. **Invalidate CloudFront cache**:
+   - Go to CloudFront Console → Your distribution
+   - Go to **Invalidations** tab
+   - Click **Create invalidation**
+   - Enter `/*` (invalidate all files)
+   - Click **Create invalidation**
+
+### Step 22: Test the Application
+
+1. Open the **CloudFront distribution URL** (from Step 14)
 2. The page should load and display all products
 3. Test search filters:
    - Filter by category
    - Search by name
    - Filter by price range
    - Combine multiple filters
+4. **Test from different locations** to see CloudFront caching in action
+
+**Performance Comparison**:
+- Direct S3: ~200-500ms (depending on location)
+- CloudFront: ~50-100ms (cached at edge locations)
 
 ---
 
 ## Phase 2: Add Monitoring
 
-### Step 13: Enable CloudWatch Logs for Lambda
+### Step 23: Enable CloudWatch Logs for Lambda
 
 1. Go to **Lambda Console** → `ProductSearchFunction`
 2. Go to **Configuration** → **Monitoring and operations tools**
 3. Logs are automatically enabled - note the **Log group** name
 
-### Step 14: Enable CloudWatch Logs for API Gateway
+### Step 24: Enable CloudWatch Logs for API Gateway
 
 1. Go to **API Gateway Console** → `ProductInventoryAPI`
 2. Select **Stages** → `prod`
@@ -672,14 +864,14 @@ Upload to S3:
    - **Enable Detailed CloudWatch Metrics**: ✓
 6. Click **Save changes**
 
-### Step 15: Create CloudWatch Dashboard
+### Step 25: Create CloudWatch Dashboard
 
 1. Navigate to **CloudWatch Console**
 2. Click **Dashboards** → **Create dashboard**
 3. **Dashboard name**: `ProductInventoryDashboard`
 4. Click **Create dashboard**
 
-5. Add widgets:
+5. **Add Lambda metrics widget**:
    - Click **Add widget** → **Line**
    - Select **Metrics**
    - Choose **Lambda** → **By Function Name**
@@ -689,7 +881,7 @@ Upload to S3:
      - `Duration`
    - Click **Create widget**
 
-6. Add API Gateway metrics:
+6. **Add API Gateway metrics widget**:
    - Click **Add widget** → **Line**
    - Select **API Gateway** → **By API Name**
    - Select metrics for `ProductInventoryAPI`:
@@ -699,27 +891,87 @@ Upload to S3:
      - `Latency`
    - Click **Create widget**
 
-7. Click **Save dashboard**
+7. **Add CloudFront metrics widget**:
+   - Click **Add widget** → **Line**
+   - Select **CloudFront** → **Per-Distribution Metrics**
+   - Select your distribution and metrics:
+     - `Requests`
+     - `BytesDownloaded`
+     - `4xxErrorRate`
+     - `5xxErrorRate`
+   - Click **Create widget**
 
-### Step 16: Create CloudWatch Alarms
+8. **Add WAF metrics widget**:
+   - Click **Add widget** → **Line**
+   - Select **WAF** → **By WebACL**
+   - Select your Web ACL and metrics:
+     - `AllowedRequests`
+     - `BlockedRequests`
+     - `CountedRequests`
+   - Click **Create widget**
+
+9. Click **Save dashboard**
+
+### Step 26: Create CloudWatch Alarms with SNS Notifications
+
+**Alarm 1: Lambda Errors**
 
 1. Go to **CloudWatch** → **Alarms** → **Create alarm**
 2. Click **Select metric**
 3. Choose **Lambda** → **By Function Name** → `ProductSearchFunction` → **Errors**
-4. Configure:
+4. Configure metric:
    - **Statistic**: Sum
    - **Period**: 5 minutes
-   - **Threshold**: Greater than 5
+5. Configure conditions:
+   - **Threshold type**: Static
+   - **Whenever Errors is**: Greater than `5`
+6. Configure actions:
+   - **Alarm state trigger**: In alarm
+   - **Select an SNS topic**: Select existing `ProductInventoryAlerts`
+7. Configure name:
    - **Alarm name**: `ProductSearch-HighErrors`
-5. Configure notification (optional - requires SNS topic)
-6. Click **Create alarm**
+   - **Description**: Alert when Lambda errors exceed 5 in 5 minutes
+8. Click **Create alarm**
 
-Create another alarm for API latency:
-1. **Metric**: API Gateway → `ProductInventoryAPI` → Latency
-2. **Threshold**: Greater than 1000ms
-3. **Alarm name**: `ProductAPI-HighLatency`
+**Alarm 2: API Latency**
 
-### Step 17: View Logs and Metrics
+1. Create another alarm
+2. **Metric**: API Gateway → `ProductInventoryAPI` → Latency
+3. **Statistic**: Average
+4. **Period**: 5 minutes
+5. **Threshold**: Greater than `1000` (ms)
+6. **SNS topic**: `ProductInventoryAlerts`
+7. **Alarm name**: `ProductAPI-HighLatency`
+8. Click **Create alarm**
+
+**Alarm 3: WAF Blocked Requests**
+
+1. Create another alarm
+2. **Metric**: WAF → By WebACL → `ProductInventoryWAF` → BlockedRequests
+3. **Statistic**: Sum
+4. **Period**: 5 minutes
+5. **Threshold**: Greater than `10`
+6. **SNS topic**: `ProductInventoryAlerts`
+7. **Alarm name**: `WAF-HighBlockedRequests`
+8. **Description**: Alert when WAF blocks more than 10 requests
+9. Click **Create alarm**
+
+**Alarm 4: CloudFront 5xx Errors**
+
+1. Create another alarm
+2. **Metric**: CloudFront → Per-Distribution → Your distribution → 5xxErrorRate
+3. **Statistic**: Average
+4. **Period**: 5 minutes
+5. **Threshold**: Greater than `1` (%)
+6. **SNS topic**: `ProductInventoryAlerts`
+7. **Alarm name**: `CloudFront-High5xxErrors`
+8. Click **Create alarm**
+
+**Test Notifications**:
+- You should receive email notifications when alarms trigger
+- Check your email inbox for SNS notifications
+
+### Step 27: View Logs and Metrics
 
 1. **Lambda Logs**:
    - Lambda Console → `ProductSearchFunction` → **Monitor** → **View CloudWatch logs**
@@ -728,9 +980,34 @@ Create another alarm for API latency:
 2. **API Gateway Logs**:
    - CloudWatch Console → **Log groups** → `/aws/apigateway/ProductInventoryAPI`
 
-3. **Dashboard**:
+3. **WAF Logs** (Optional - requires S3 or Kinesis):
+   - WAF Console → Your Web ACL → **Logging and metrics**
+   - Enable logging to see blocked requests
+
+4. **CloudFront Logs** (Optional):
+   - CloudFront Console → Your distribution → **Logs**
+   - Enable standard logging to S3
+
+5. **Dashboard**:
    - CloudWatch → **Dashboards** → `ProductInventoryDashboard`
-   - View real-time metrics
+   - View real-time metrics for all services
+
+### Step 28: Test WAF Protection
+
+Test that WAF is blocking malicious requests:
+
+```bash
+# Normal request (should work)
+curl "YOUR-API-URL/products"
+
+# SQL injection attempt (should be blocked by WAF)
+curl "YOUR-API-URL/products?category=Machinery' OR '1'='1"
+
+# XSS attempt (should be blocked by WAF)
+curl "YOUR-API-URL/products?name=<script>alert('xss')</script>"
+```
+
+Check WAF metrics in CloudWatch to see blocked requests.
 
 ---
 
@@ -738,11 +1015,42 @@ Create another alarm for API latency:
 
 Now automate everything with Infrastructure as Code!
 
-### Step 18: Clean Up Console Resources (Optional)
+### Step 29: Verify VPC Configuration
+
+Let's verify that Lambda is properly configured in the VPC:
+
+1. Go to **Lambda Console** → `ProductSearchFunction`
+2. Go to **Configuration** → **VPC**
+3. Verify:
+   - VPC: `ProductInventory-VPC`
+   - Subnets: 2 private subnets
+   - Security groups: `ProductInventory-Lambda-SG`
+
+4. Go to **VPC Console** → **Endpoints**
+5. Verify DynamoDB endpoint is **Available**
+
+6. Test the complete flow:
+   - Open CloudFront URL
+   - Search for products
+   - Check Lambda logs for successful execution
+   - Verify no internet gateway is used (all traffic via VPC endpoint)
+
+**Benefits of VPC Configuration**:
+- ✅ Network isolation and security
+- ✅ Private communication with DynamoDB
+- ✅ No data traverses the public internet
+- ✅ Compliance with security requirements
+- ✅ No NAT Gateway costs (using VPC endpoints)
+
+---
+
+## Phase 3: Terraform Implementation
+
+### Step 30: Clean Up Console Resources (Optional)
 
 Before implementing with Terraform, you can delete the console-created resources or use different names in Terraform.
 
-### Step 19: Install Terraform
+### Step 31: Install Terraform
 
 ```bash
 # macOS
@@ -752,7 +1060,7 @@ brew install terraform
 terraform --version
 ```
 
-### Step 20: Configure AWS CLI
+### Step 32: Configure AWS CLI
 
 ```bash
 aws configure
@@ -762,7 +1070,7 @@ aws configure
 # Default output format: json
 ```
 
-### Step 21: Create Terraform Configuration Files
+### Step 33: Create Terraform Configuration Files
 
 Create the following directory structure:
 ```
@@ -778,7 +1086,7 @@ terraform/
 
 See the separate Terraform files in this repository.
 
-### Step 22: Initialize and Apply Terraform
+### Step 34: Initialize and Apply Terraform
 
 ```bash
 cd terraform
@@ -789,7 +1097,7 @@ terraform apply
 
 Type `yes` when prompted.
 
-### Step 23: Get Outputs
+### Step 35: Get Outputs
 
 ```bash
 terraform output
@@ -797,7 +1105,7 @@ terraform output
 
 Copy the `api_gateway_url` and update the `index.html` file in the `website/` directory.
 
-### Step 24: Upload Website with Updated API URL
+### Step 36: Upload Website with Updated API URL
 
 After updating the API URL in `index.html`, re-apply:
 
@@ -811,7 +1119,7 @@ terraform apply
 
 ### Test Checklist
 
-- [ ] Website loads from S3 endpoint
+- [ ] Website loads from CloudFront URL
 - [ ] All products display on initial load
 - [ ] Category filter works
 - [ ] Name search works
@@ -820,8 +1128,11 @@ terraform apply
 - [ ] API returns correct JSON format
 - [ ] Lambda logs appear in CloudWatch
 - [ ] API Gateway logs appear in CloudWatch
-- [ ] Dashboard shows metrics
-- [ ] Alarms are configured
+- [ ] CloudFront caches content properly
+- [ ] WAF blocks malicious requests
+- [ ] Dashboard shows metrics for all services
+- [ ] Alarms are configured with SNS notifications
+- [ ] Email notifications work when alarms trigger
 
 ### API Testing with curl
 
@@ -880,21 +1191,44 @@ For this lab (assuming light usage):
 - **Lambda**: Free tier (1M requests/month)
 - **API Gateway**: Free tier (1M requests/month for 12 months)
 - **S3**: ~$0.023/GB/month + minimal request costs
+- **CloudFront**: Free tier (1TB data transfer out, 10M requests/month for 12 months)
+- **WAF**: ~$5/month (Web ACL) + $1 per million requests
+- **SNS**: Free tier (1,000 email notifications/month)
 - **CloudWatch**: Free tier (10 custom metrics, 5GB logs)
+- **VPC**: Free (VPC, subnets, security groups, route tables)
+- **VPC Endpoints**: Free for Gateway endpoints (S3, DynamoDB)
 
-**Estimated monthly cost**: $0-2 for light usage
+**Estimated monthly cost**: $5-10 for light usage (mainly WAF costs)
+
+**Cost Savings with VPC**:
+- ✅ No NAT Gateway needed (~$32/month saved)
+- ✅ Using Gateway endpoints (free) instead of Interface endpoints (~$7/month saved)
+- ✅ No data transfer charges for DynamoDB access
+
+**Note**: WAF is the main cost driver. For educational purposes, you can disable WAF after testing to reduce costs to ~$0-2/month.
 
 ---
 
 ## Cleanup
 
 ### Console Cleanup
-1. Delete S3 bucket (empty first)
-2. Delete API Gateway API
-3. Delete Lambda function
-4. Delete DynamoDB table
-5. Delete CloudWatch alarms and dashboard
-6. Delete IAM roles (if not used elsewhere)
+1. Delete CloudFront distribution (disable first, then delete after ~15 minutes)
+2. Delete WAF Web ACL (disassociate from API Gateway first)
+3. Delete SNS topic and subscriptions
+4. Delete S3 bucket (empty first)
+5. Delete API Gateway API
+6. Delete Lambda function (this will remove ENIs from VPC automatically)
+7. Delete DynamoDB table
+8. Delete CloudWatch alarms and dashboard
+9. Delete VPC endpoints (DynamoDB and S3)
+10. Delete VPC (this will delete subnets, route tables, and security groups)
+11. Delete IAM roles (if not used elsewhere)
+
+**Important Notes**:
+- CloudFront distributions take 15+ minutes to delete
+- Lambda ENIs (Elastic Network Interfaces) are automatically deleted when Lambda is deleted
+- VPC can only be deleted after all resources using it are removed
+- Delete in the order listed above to avoid dependency errors
 
 ### Terraform Cleanup
 ```bash
@@ -923,14 +1257,16 @@ Type `yes` when prompted.
 
 1. **Add POST endpoint** to create new products
 2. **Implement pagination** for large result sets
-3. **Add CloudFront** distribution for S3 website
+3. **Add custom domain** to CloudFront with SSL certificate
 4. **Implement API key authentication**
 5. **Add X-Ray tracing** for distributed tracing
-6. **Create SNS notifications** for alarms
+6. **Enable WAF logging** to S3 for security analysis
 7. **Implement DynamoDB Streams** to track changes
 8. **Add ElastiCache** for caching frequent queries
-9. **Implement WAF** for API security
+9. **Add rate limiting** with WAF rate-based rules
 10. **Add automated testing** with pytest
+11. **Implement geo-blocking** with CloudFront
+12. **Add Lambda@Edge** for custom headers
 
 ---
 
@@ -939,6 +1275,9 @@ Type `yes` when prompted.
 - [AWS Lambda Documentation](https://docs.aws.amazon.com/lambda/)
 - [API Gateway Documentation](https://docs.aws.amazon.com/apigateway/)
 - [DynamoDB Documentation](https://docs.aws.amazon.com/dynamodb/)
+- [CloudFront Documentation](https://docs.aws.amazon.com/cloudfront/)
+- [WAF Documentation](https://docs.aws.amazon.com/waf/)
+- [SNS Documentation](https://docs.aws.amazon.com/sns/)
 - [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
 - [CloudWatch Documentation](https://docs.aws.amazon.com/cloudwatch/)
 

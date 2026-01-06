@@ -10,6 +10,13 @@ variable "project_name" {
   default     = "product-inventory"
 }
 
+variable "alert_email" {
+  description = "Email address for CloudWatch alarm notifications"
+  type        = string
+  default     = ""
+}
+
+
 variable "environment" {
   description = "Environment name"
   type        = string
