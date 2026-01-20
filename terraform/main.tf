@@ -227,17 +227,17 @@ resource "aws_iam_role_policy" "lambda_policy" {
 # Lambda Function
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_file = "${path.module}/lambda/product_search.py"
-  output_path = "${path.module}/lambda/product_search.zip"
+  source_file = "${path.module}/lambda/lambda_function.py"
+  output_path = "${path.module}/lambda/lambda_function.zip"
 }
 
 resource "aws_lambda_function" "product_search" {
   filename         = data.archive_file.lambda_zip.output_path
   function_name    = "${var.project_name}-search"
   role            = aws_iam_role.lambda_role.arn
-  handler         = "product_search.lambda_handler"
+  handler         = "lambda_function.lambda_handler"
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-  runtime         = "python3.12"
+  runtime         = "python3.14"
   timeout         = 30
 
   vpc_config {

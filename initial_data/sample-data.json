@@ -1,0 +1,92 @@
+[
+  {
+    "productId": {"S": "PROD001"},
+    "name": {"S": "Industrial Drill Press"},
+    "category": {"S": "Machinery"},
+    "price": {"N": "1250.00"},
+    "stock": {"N": "15"},
+    "manufacturer": {"S": "ToolCorp"},
+    "lastUpdated": {"S": "2026-01-06"}
+  },
+  {
+    "productId": {"S": "PROD002"},
+    "name": {"S": "Safety Helmet"},
+    "category": {"S": "Safety Equipment"},
+    "price": {"N": "45.99"},
+    "stock": {"N": "200"},
+    "manufacturer": {"S": "SafetyFirst"},
+    "lastUpdated": {"S": "2026-01-06"}
+  },
+  {
+    "productId": {"S": "PROD003"},
+    "name": {"S": "Hydraulic Lift"},
+    "category": {"S": "Machinery"},
+    "price": {"N": "8500.00"},
+    "stock": {"N": "3"},
+    "manufacturer": {"S": "LiftMaster"},
+    "lastUpdated": {"S": "2026-01-05"}
+  },
+  {
+    "productId": {"S": "PROD004"},
+    "name": {"S": "Safety Goggles"},
+    "category": {"S": "Safety Equipment"},
+    "price": {"N": "12.99"},
+    "stock": {"N": "500"},
+    "manufacturer": {"S": "SafetyFirst"},
+    "lastUpdated": {"S": "2026-01-06"}
+  },
+  {
+    "productId": {"S": "PROD005"},
+    "name": {"S": "Welding Machine"},
+    "category": {"S": "Machinery"},
+    "price": {"N": "3200.00"},
+    "stock": {"N": "8"},
+    "manufacturer": {"S": "WeldPro"},
+    "lastUpdated": {"S": "2026-01-01"}
+  },
+  {
+    "productId": {"S": "PROD006"},
+    "name": {"S": "Power Drill"},
+    "category": {"S": "Tools"},
+    "price": {"N": "89.99"},
+    "stock": {"N": "45"},
+    "manufacturer": {"S": "ToolCorp"},
+    "lastUpdated": {"S": "2026-01-06"}
+  },
+  {
+    "productId": {"S": "PROD007"},
+    "name": {"S": "Steel Beams"},
+    "category": {"S": "Materials"},
+    "price": {"N": "450.00"},
+    "stock": {"N": "120"},
+    "manufacturer": {"S": "SteelWorks"},
+    "lastUpdated": {"S": "2026-01-04"}
+  },
+  {
+    "productId": {"S": "PROD008"},
+    "name": {"S": "Forklift"},
+    "category": {"S": "Machinery"},
+    "price": {"N": "15000.00"},
+    "stock": {"N": "2"},
+    "manufacturer": {"S": "LiftMaster"},
+    "lastUpdated": {"S": "2026-01-03"}
+  },
+  {
+    "productId": {"S": "PROD009"},
+    "name": {"S": "Safety Vest"},
+    "category": {"S": "Safety Equipment"},
+    "price": {"N": "19.99"},
+    "stock": {"N": "300"},
+    "manufacturer": {"S": "SafetyFirst"},
+    "lastUpdated": {"S": "2026-01-06"}
+  },
+  {
+    "productId": {"S": "PROD010"},
+    "name": {"S": "Angle Grinder"},
+    "category": {"S": "Tools"},
+    "price": {"N": "125.00"},
+    "stock": {"N": "30"},
+    "manufacturer": {"S": "ToolCorp"},
+    "lastUpdated": {"S": "2026-01-05"}
+  }
+]
