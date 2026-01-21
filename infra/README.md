@@ -37,21 +37,15 @@ Get your temporary credentials from AWS Academy:
 - `vpc_cidr`: Choose a /24 CIDR that doesn't overlap with your partner's VPC
 - `s3_bucket_suffix`: Use your initials and random characters for uniqueness
 
-### 3. Prepare Lambda Code
+### 3. Update Website with API URL
 
-Copy the Lambda function code:
-```bash
-cp ../terraform/lambda/lambda_function.py lambda/
-```
+The Terraform code automatically uses files from `initial_data/` directory. However, you need to update the API URL in the website:
 
-### 4. Prepare Website Code
-
-Copy the website code and update the API URL:
-```bash
-cp ../terraform/website/index.html website/
-```
-
-Edit `website/index.html` and replace `YOUR-API-GATEWAY-URL` with your API Gateway URL (you'll get this after first deployment).
+1. Edit `initial_data/index.html`
+2. Find the line: `const API_URL = 'https://rl7fds0q6d.execute-api.us-east-1.amazonaws.com/prod/products';`
+3. You can either:
+   - Leave it as is for the first deployment, then update it with the actual URL from Terraform outputs
+   - Or comment it out and deploy first to get the URL
 
 ### 5. Deploy Infrastructure
 
