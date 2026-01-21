@@ -44,7 +44,6 @@ The architecture diagram below shows the final API layout used in this lab:
 
 ![Final Architecture](img/final-architecture.png)
 
-- **CDN**: CloudFront distribution for global content delivery
 - **Frontend**: Static website hosted on S3
 - **Security**: WAF (Web Application Firewall) for API protection
 - **Network**: VPC with private subnets for Lambda
@@ -222,7 +221,7 @@ Test 2: Filter by Category
 ![Lambda 3](img/step5_6.png)
 
 
-### Step 6: Create API Gateway
+### Step 6: Create API Gateway to invoke via API the Lambda function created
 
 1. Navigate to **API Gateway Console**
 2. Click **Create API**
@@ -275,9 +274,11 @@ Test 2: Filter by Category
    - **Deployment stage**: [New Stage]
    - **Stage name**: `prod`
 3. Click **Deploy**
-4. **Copy the Invoke URL** (e.g., `https://abc123.execute-api.us-east-1.amazonaws.com/prod`)
+4. **Copy the Invoke URL** (e.g., `https://abc123.execute-api.us-east-1.amazonaws.com/prod`) then you need to add the path /products to the url to access the methods
 
-### Step 9: Create S3 Bucket for Static Website
+![Enable Static Website Hosting](img/step8_1.png)
+
+### Step 9: Create S3 Bucket for hosting the Static Website
 
 1. Navigate to **S3 Console**
 2. Click **Create bucket**
@@ -285,14 +286,41 @@ Test 2: Filter by Category
    - **Bucket name**: `product-inventory-web-us-east-1-[your-initials-random]` (must be globally unique)
    - **Region**: Same as your other resources
    - **Uncheck** "Block all public access"
+    Tou can check the options
+□ Block public access granted through new ACLs (opcional)
+□ Block public access granted through any ACLs (opcional)
+
+![s3 access](img/step9_1.png)
+
    - Acknowledge the warning
+
 4. Click **Create bucket**
+5. Once created, go to Permissions from the new bucket created and add the following Bucket policy to enable to access to the website you are going to host
+
+![s3 access policy](img/step9_2.png)
+IMPORTANT: Replace s3 bucket name in YOUR-BUCKET-NAME
+
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "PublicReadGetObject",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+        }
+    ]
+}
+```
+
 
 ### Step 10: Enable Static Website Hosting
 
 1. Open your bucket → **Properties** tab
-![Enable Static Website Hosting](img/step9_1.png)
-![Enable Static Website Hosting](img/step9_2.png)
+![Enable Static Website Hosting](img/step10_1.png)
+![Enable Static Website Hosting](img/step10_2.png)
 2. Scroll to **Static website hosting** → **Edit**
 3. Configure:
    - **Static website hosting**: Enable
@@ -300,17 +328,17 @@ Test 2: Filter by Category
    - **Index document**: `index.html`
 4. Click **Save changes**
 
-![Enable Static Website Hosting](img/step9_3.png)
+![Enable Static Website Hosting](img/step10_3.png)
 
-5. **Copy the Bucket website endpoint URL**
-
-
-
-### Step 15: Create and Upload Static Website
-
-Create `index.html` with the content from 'initial_data/index.html' content (IMPORTANT: replace `YOUR-API-GATEWAY-URL`):
+5. **Copy the Bucket website endpoint URL, you need it to access the page later**
 
 
+
+### Step 11: Create and Upload Static Website
+
+Create `index.html` with the content from 'initial_data/index.html' content (IMPORTANT: replace `YOUR-API-GATEWAY-URL`with the Invoke URL from API gateway adding the name of the path you added e.g. `https://abc123.execute-api.us-east-1.amazonaws.com/prod/products`):
+
+![replace index](img/step11_2.png)
 
 Upload to S3:
 1. Go to your S3 bucket → **Objects** tab
@@ -318,136 +346,45 @@ Upload to S3:
 3. Select `index.html`
 4. Click **Upload**
 
-### Step 16: Create SNS Topic for Notifications
+![Upload index](img/step11_1.png)
 
-1. Navigate to **SNS Console**
-2. Click **Topics** → **Create topic**
-3. Configure:
-   - **Type**: Standard
-   - **Name**: `ProductInventoryAlerts`
-   - **Display name**: `Product Alerts`
-4. Click **Create topic**
-5. **Copy the Topic ARN**
 
-### Step 17: Create SNS Subscription
-
-1. In the topic details, click **Create subscription**
-2. Configure:
-   - **Protocol**: Email
-   - **Endpoint**: Your email address
-3. Click **Create subscription**
-4. **Check your email** and click the confirmation link
-5. Status should change to "Confirmed"
-
-### Step 18: Create CloudFront Distribution
-
-1. Navigate to **CloudFront Console**
-2. Click **Create distribution**
-3. Configure **Origin**:
-   - **Origin domain**: Select your S3 bucket website endpoint (use the format: `bucket-name.s3-website-region.amazonaws.com`)
-   - **Protocol**: HTTP only (for S3 website endpoint)
-   - **Name**: Leave default
-4. Configure **Default cache behavior**:
-   - **Viewer protocol policy**: Redirect HTTP to HTTPS
-   - **Allowed HTTP methods**: GET, HEAD, OPTIONS
-   - **Cache policy**: CachingOptimized
-5. Configure **Settings**:
-   - **Price class**: Use all edge locations (best performance)
-   - **Alternate domain name (CNAME)**: Leave empty (or add your custom domain)
-   - **Default root object**: `index.html`
-6. Click **Create distribution**
-7. **Wait 5-10 minutes** for deployment (Status: "Enabled")
-8. **Copy the Distribution domain name** (e.g., `d1234abcd.cloudfront.net`)
-
-**Note**: You'll need to update the website to use the CloudFront URL instead of direct S3 access.
-
-### Step 19: Create WAF Web ACL
+### Step 12: Create WAF Web ACL to protect the API
 
 1. Navigate to **WAF & Shield Console**
 2. Click **Web ACLs** → **Create web ACL**
-3. Configure **Web ACL details**:
-   - **Name**: `ProductInventoryWAF`
-   - **Resource type**: Regional resources (API Gateway)
-   - **Region**: Same as your API Gateway
-4. Click **Next**
+3. Select **App category** -> API & integration services
+4. Select resources to protect -> Add Resources -> Add regional resources (you will see some errors for access denied, but you can proceed)
+5. Select you API gateway previously created to protect
+6. Select the recommended plan for you with all the protection
+![WAF](img/step12_1.png)
 
-5. **Add AWS managed rule groups**:
-   - Click **Add rules** → **Add managed rule groups**
-   - Expand **AWS managed rule groups**
-   - Enable these rule groups:
-     - ✓ **Core rule set** (protects against common threats)
-     - ✓ **Known bad inputs** (blocks malicious patterns)
-     - ✓ **SQL database** (SQL injection protection)
-   - Click **Add rules**
-6. Click **Next**
-
-7. **Set rule priority**: Keep default order
-8. Click **Next**
-
-9. **Configure metrics**: Keep defaults
-10. Click **Next**
-
-11. **Review and create**: Click **Create web ACL**
-
-### Step 20: Associate WAF with API Gateway
-
-1. In the WAF Web ACL details, go to **Associated AWS resources**
-2. Click **Add AWS resources**
-3. Select **API Gateway**
-4. Choose your `ProductInventoryAPI` → stage `prod`
-5. Click **Add**
+7. In the created WAF, click on Rules to understand what is enabled
+8. Add a new rule, 
+    -  Click **Add rules** → **Add managed rule groups**
+    - Expand **AWS managed rule groups**
+    - Enable these rule groups:
+    - ✓ **Core rule set** (protects against common threats)
+    - ✓ **Known bad inputs** (blocks malicious patterns)
+    - ✓ **SQL database** (SQL injection protection)
 
 **Note**: WAF will now protect your API from common attacks.
 
-### Step 21: Update Website to Use CloudFront
+![WAF rules](img/step12_2.png)
 
-1. Go to your S3 bucket
-2. Download the `index.html` file
-3. Update the API URL to use your API Gateway URL (keep this the same)
-4. Re-upload the file to S3
-5. **Invalidate CloudFront cache**:
-   - Go to CloudFront Console → Your distribution
-   - Go to **Invalidations** tab
-   - Click **Create invalidation**
-   - Enter `/*` (invalidate all files)
-   - Click **Create invalidation**
 
-### Step 22: Test the Application
 
-1. Open the **CloudFront distribution URL** (from Step 14)
+### Step 13: Test the Application
+
+1. Open the **Bucket website endpoint URL** in a browser (from Step 10)
 2. The page should load and display all products
 3. Test search filters:
    - Filter by category
    - Search by name
    - Filter by price range
    - Combine multiple filters
-4. **Test from different locations** to see CloudFront caching in action
 
 
-**Important**: After deployment:
-1. Check your email and confirm SNS subscription
-2. Copy the CloudFront URL to access the website
-3. The API Gateway URL is already configured in the website
-
-### Testing
-
-Run the test script:
-```bash
-./test-api.sh <API_GATEWAY_URL>
-```
-
-Or test manually:
-```bash
-# Get all products
-curl "https://your-api-url/products"
-
-# Filter by category
-curl "https://your-api-url/products?category=Machinery"
-
-# Search by name
-curl "https://your-api-url/products?name=Drill"
-
-# Price range
 
 
 ## Final Flow
@@ -563,14 +500,14 @@ Now you will replicate the infrastructure you created manually in Part 1 using T
 
 ## Extra Credit
 
-
+Create a Cloudwatch Alarm to identify error in the Lambda and create a SNS notifiction by email
 
 ## Resources
 
 - [AWS VPC Documentation](https://docs.aws.amazon.com/vpc/)
 - [Amazon DynamoDB Documentation](https://docs.aws.amazon.com/dynamodb/)
 - [Amazon API gateway Documentation](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html)
-- [Speeding up your website with Amazon CloudFront](https://docs.aws.amazon.com/AmazonS3/latest/userguide/website-hosting-cloudfront-walkthrough.html)
+- [Web hosting in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html)
 - [Terraform AWS Provider Documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
 - [CloudWatch Documentation](https://docs.aws.amazon.com/cloudwatch/)
 
