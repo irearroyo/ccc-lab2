@@ -402,7 +402,7 @@ Upload to S3:
                                        │   CloudWatch Logs & Metrics  │
                                        └──────────────────────────────┘
 ```
-## Part 2: Infrastructure as Code
+## Extra credit: Infrastructure as Code
 
 In this section, you will recreate your infrastructure using Terraform, learning infrastructure-as-code principles. Terraform allows you to define your infrastructure in code, making it reproducible, version-controlled, and easier to manage.
 
@@ -514,18 +514,29 @@ Create a Cloudwatch Alarm to identify error in the Lambda and create a SNS notif
 
 ## Submission
 
-You will need to create one lab report per team. At the bare minimum, it should include:
+You will need to create one lab report. At the bare minimum, it should include:
 1. Names and student number
-2. Screenshots of your dynamoDB with the items
+2. Screenshots of your DynamoDB with the items
 3. Screenshot of VPC endpoint
 4. Screenshot of Lambda working with a test
-4. Screenshot of API gateway methods
-5. Screenshot of Cloudfront and data access test
-6. Link to your GitHub repository with Terraform code
-7. Explain key concepts learned during the lab.
-8. Explain problems you ran into and how you were able to solve them.
-9. Answer to the following questions:
-   - What is the purpose of an Internet Gateway in a VPC, and why is it required for your EC2 instance to be reachable from the internet?
-   - Why did we need to add routes to the route tables after creating the VPC peering connection? What would happen if we skipped this step?
-   - Explain the difference between a public and private subnet. Why might you place an EC2 instance in a private subnet in a production environment?
-   - What are two advantages of using Infrastructure as Code (Terraform) instead of manually configuring resources through the AWS Console?
+5. Screenshot of API Gateway methods
+6. Screenshot of S3 static website and data access test
+7. Screenshot of WAF Web ACL with enabled rules
+8. Link to your GitHub repository with Terraform code
+9. Explain key concepts learned during the lab.
+10. Explain problems you ran into and how you were able to solve them.
+11. Answer to the following questions:
+   - What is the purpose of a VPC Endpoint for DynamoDB, and why did we use it instead of a NAT Gateway? What are the cost and security benefits?
+   - Why did we place the Lambda function inside a VPC? What are the trade-offs of running Lambda in a VPC versus outside a VPC?
+   - What is the purpose of API Gateway in this architecture? Explain how it connects the S3 static website to the Lambda function and what benefits it provides.
+   - Explain the purpose of AWS WAF and describe at least two types of attacks that the managed rule groups we enabled (Core rule set, Known bad inputs, SQL database) can protect against.
+
+
+
+
+
+
+
+
+
+   
