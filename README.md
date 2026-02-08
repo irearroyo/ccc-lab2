@@ -15,7 +15,6 @@ This lab guides you through building a serverless REST API to cosume data from a
 - Create a DynamoDB table
 - Understand WAF basic configuration
 - Set up automated notifications with SNS
-- Implement infrastructure-as-code using Terraform
 
 ## 2. Prerequisites
 
@@ -25,9 +24,9 @@ Before starting this lab, ensure you have the following installed and configured
 
 ## 3. Introduction
 
-This lab is divided into two main parts:
 
-**Part 1: Manual Configuration**: You will manually configure AWS resources through the AWS Console to understand the underlying concepts.
+
+**Manual Configuration**: You will manually configure AWS resources through the AWS Console to understand the underlying concepts.
 
 
 The architecture diagram below shows the final API layout used in this lab:
@@ -232,7 +231,8 @@ This step sets up the actual API structure and connects it to your Lambda functi
 1. Click **Actions** → **Create Resource**
    - **Resource Name**: `products`
    - **Resource Path**: `/products`
-   - Enable **CORS**
+   - Enable **CORS**, 
+   CORS (Cross-Origin Resource Sharing) is a security mechanism that allows a web page from one domain to request resources from a different domain. For the lab CORS works by having the server (API Gateway) send special HTTP headers like Access-Control-Allow-Origin: * that tell the browser it's safe to allow the cross-origin request. Without these headers, the browser will block the API call and show a CORS error in the console.
 2. Click **Create Resource**
 
 You create a /products resource path with CORS enabled (Cross-Origin Resource Sharing allows your S3 website to call the API from a different domain)
@@ -282,6 +282,22 @@ Deploy the API to expose your Lambda function as a callable REST endpoint at a U
 4. **Copy the Invoke URL** (e.g., `https://abc123.execute-api.us-east-1.amazonaws.com/prod`) then you need to add the path /products to the url to access the methods
 
 ![Enable Static Website Hosting](img/step8_1.png)
+
+#### Test Your API
+
+**Option 1: Test with curl**
+```bash
+curl "https://YOUR-INVOKE-URL/prod/products?category=Machinery"
+```
+Expected response: JSON with products in "Machinery" category
+
+**Option 2: Test in API Gateway Console**
+1. In API Gateway, select your API → **Resources**
+2. Click on the **GET** method under `/products`
+3. Click **Test** button (lightning bolt icon)
+4. In **Query Strings**, add: `category=Tools`
+5. Click **Test**
+6. You should see a 200 response with product data in the response body
 
 ### Step 9: Create S3 Bucket for hosting the Static Website
 
@@ -356,6 +372,7 @@ Upload to S3:
 ![Upload index](img/step11_1.png)
 
 
+
 ### Step 12: Create WAF Web ACL to protect the API
 
 This step adds a security layer in front of your API Gateway using AWS WAF (Web Application Firewall). 
@@ -370,6 +387,9 @@ This step adds a security layer in front of your API Gateway using AWS WAF (Web 
 ![WAF](img/step12_1.png)
 
 7. In the created WAF, click on Rules to understand what is enabled
+With recommended plan (step 6), AWS automatically enables a set of managed rule groups based on the "API & integration services" category, providing baseline protection against common threats.
+
+Adding custom rules from the following step, you can enhance this protection by manually adding or customizing specific rule groups like Core rule set, Known bad inputs, and SQL database rules to tailor the security to your API's specific needs.
 8. Add a new rule, 
     -  Click **Add rules** → **Add managed rule groups**
     - Expand **AWS managed rule groups**
@@ -500,16 +520,6 @@ Create a centralized dashboard to monitor all components of your application.
 20. Select metrics: `ConsumedReadCapacityUnits`, `SuccessfulRequestLatency`
 21. Click **Create widget**
 
-**Add Widget 5: WAF Metrics**
-
-22. Click **Add widget** → **Line**
-23. Choose **WAFV2** → **Per web ACL metrics**
-24. Select metrics: `AllowedRequests`, `BlockedRequests`
-25. Click **Create widget**
-
-26. Arrange widgets as desired by dragging them
-27. Customize the dashboard with custom names, different types of visualizations...
-28. Click **Save dashboard**
 
 ### Step 17: Test Monitoring Setup
 
@@ -1210,7 +1220,6 @@ Finally, you can update the file in S3 and test it.
 - [Amazon DynamoDB Documentation](https://docs.aws.amazon.com/dynamodb/)
 - [Amazon API gateway Documentation](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html)
 - [Web hosting in Amazon S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html)
-- [Terraform AWS Provider Documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
 - [CloudWatch Documentation](https://docs.aws.amazon.com/cloudwatch/)
 
 
@@ -1229,10 +1238,9 @@ You will need to create one lab report. At the bare minimum, it should include:
 10. Screenshot of DynamoDB table showing the product created via POST request
 11. Screenshot of the web form with "Add New Product" section visible
 12. Screenshot showing successful product addition with green success message in the browser
-13. Link to your GitHub repository with Terraform code
-14. Explain key concepts learned during the lab.
-15. Explain problems you ran into and how you were able to solve them.
-16. Answer to the following questions:
+13. Explain key concepts learned during the lab.
+14. Explain problems you ran into and how you were able to solve them.
+15. Answer to the following questions:
    - What is the purpose of a VPC Endpoint for DynamoDB, and why did we use it instead of a NAT Gateway? What are the cost and security benefits?
    - Why did we place the Lambda function inside a VPC? What are the trade-offs of running Lambda in a VPC versus outside a VPC?
    - What is the purpose of API Gateway in this architecture? Explain how it connects the S3 static website to the Lambda function and what benefits it provides.
@@ -1241,9 +1249,12 @@ You will need to create one lab report. At the bare minimum, it should include:
 
 
 
+Delete the WAF Web ACL after completing the lab to avoid ongoing charges.
 
 
 
+
+   
 
 
 
