@@ -376,7 +376,7 @@ This step adds a security layer in front of your API Gateway using AWS WAF (Web 
 3. Select **App category** -> API & integration services
 4. Select resources to protect -> Add Resources -> Add regional resources (you will see some errors for access denied, but you can proceed)
 5. Select you API gateway previously created to protect
-6. Select the recommended plan for you with all the protection
+6. Select the recommended plan for you with all the protection and click `Create  protection pack (web ACL)`.
 ![WAF](img/step12_1.png)
 
 7. In the created WAF, click on Rules to understand what is enabled
