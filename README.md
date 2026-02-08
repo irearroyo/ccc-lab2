@@ -3,7 +3,7 @@
 
 ## 1. Overview and Objectives
 
-This lab guides you through building a serverless REST API to cosume data from a DynamoDB to get product inventory. You'll start by manually creating the infrastructure in the AWS Console to understand each component, then automate the entire deployment using Terraform to learn infrastructure-as-code best practices.
+This lab guides you through building a serverless REST API to cosume data from a DynamoDB to get product inventory. You'll start by manually creating the infrastructure in the AWS Console to understand each component.
 
 **Team Structure:**
 - Work in teams of 2
@@ -22,15 +22,6 @@ This lab guides you through building a serverless REST API to cosume data from a
 Before starting this lab, ensure you have the following installed and configured:
 
 - **AWS Academy Learner Lab access**: Accept the invitation to AWS Academy and read `Academy Learner Lab Student Guide` (pages 3-7) and watch the video `Demo - How to Access Learner Lab`
-- **WSL (Windows only)**: If you're on Windows, install Windows Subsystem for Linux (WSL) and use a Linux distribution (Ubuntu recommended)
-- **Git**: Install Git and configure it with your name and email
-- **GitHub Account**: Set up SSH authentication to be able to clone and push changes
-- **Docker Desktop**: Install Docker Desktop for container support
-- **Terraform**: Install Terraform (version 1.14 or later)
-- **Visual Studio Code**: Install VS Code with recommended extensions:
-  - Git Graph
-  - Dev Containers
-  - Python
 
 ## 3. Introduction
 
@@ -38,7 +29,6 @@ This lab is divided into two main parts:
 
 **Part 1: Manual Configuration**: You will manually configure AWS resources through the AWS Console to understand the underlying concepts.
 
-**Part 2: Infrastructure as Code**: You will recreate your infrastructure from the previous steps using Terraform.
 
 The architecture diagram below shows the final API layout used in this lab:
 
