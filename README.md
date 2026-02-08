@@ -528,14 +528,14 @@ Create a centralized dashboard to monitor all components of your application.
 3. Return to your CloudWatch Dashboard and observe the metrics updating
 4. Verify your alarms are in **OK** state (green)
 
-To test alarm notifications (optional):
+To test alarm notifications:
 1. Temporarily modify your Lambda function to throw an error
 2. Make several API calls to trigger the error
 3. Wait for the alarm to enter **In alarm** state
 4. Check your email for the SNS notification
 5. Revert the Lambda function to its working state
 
-## Part 3: Add POST Method to Create Products from the front end (Optional)
+## Part 3: Add POST Method to Create Products from the front end
 
 
 In this step, you'll extend your REST API to support creating new products through a POST endpoint. This involves modifying multiple components of your architecture to work together:
