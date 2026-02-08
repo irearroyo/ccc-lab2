@@ -270,7 +270,7 @@ You add a GET method to the /products resource and configure it to use Lambda Pr
 
 You enable CORS on the resource, which adds the necessary headers (Access-Control-Allow-Origin: *, etc.) so browsers don't block requests from your static website to the API
 
-  - Select `/products` → **Actions** → **Enable CORS**
+  - Select `/products` → **Enable CORS**
   - **Gateway responses**: Keep both checkboxes selected (Default 4XX and Default 5XX)
     - This ensures error responses also include CORS headers
   - **Access-Control-Allow-Methods**: Keep **GET** checked
