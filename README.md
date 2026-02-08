@@ -6,7 +6,7 @@
 This lab guides you through building a serverless REST API to cosume data from a DynamoDB to get product inventory. You'll start by manually creating the infrastructure in the AWS Console to understand each component, then automate the entire deployment using Terraform to learn infrastructure-as-code best practices.
 
 **Team Structure:**
-- Work individually
+- Work in teams of 2
 
 **Learning Objectives:**
 - Continue gaining hands-on understanding of AWS
