@@ -1226,8 +1226,6 @@ Finally, you can update the file in S3 and test it.
 
 ## Submission
 
-## Submission
-
 You will need to create one lab report. At the bare minimum, it should include:
 1. Names and student number
 2. Screenshots of your DynamoDB with the items
@@ -1253,9 +1251,7 @@ You will need to create one lab report. At the bare minimum, it should include:
 
 
 
-## End Lab 
 
-¡IMPORTANT! After you finish the lab delete the VPC endpoint created as it has a recurrent cost
 
 
 
