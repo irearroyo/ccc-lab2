@@ -394,7 +394,6 @@ Adding custom rules from the following step, you can enhance this protection by 
     -  Click **Add rules** → **Add managed rule groups**
     - Expand **AWS managed rule groups**
     - Enable these rule groups:
-    - ✓ **Core rule set** (protects against common threats)
     - ✓ **Known bad inputs** (blocks malicious patterns)
     - ✓ **SQL database** (SQL injection protection)
 
@@ -517,7 +516,7 @@ Create a centralized dashboard to monitor all components of your application.
 
 18. Click **Add widget** → **Line**
 19. Choose **DynamoDB** → **Table Metrics** → `ProductInventory`
-20. Select metrics: `ConsumedReadCapacityUnits`, `SuccessfulRequestLatency`
+20. Select metrics: `ConsumedReadCapacityUnits`
 21. Click **Create widget**
 
 
