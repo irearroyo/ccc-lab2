@@ -1213,8 +1213,7 @@ Finally, you can update the file in S3 and test it.
 ```
 ## Part 4: Self Guided:
 1. Load test your API GW. How many requests per second are you able to achieve? What is the limiting factor?
-2. Create a DELETE endoint.
-3. [EXTRA CREDIT] Refactor your application to use a relational database (PostgreSQL RDS) instead of DynamoDB (If you complete this minimum grade will be 9)
+2. [EXTRA CREDIT] Refactor your application to use a relational database (PostgreSQL RDS) instead of DynamoDB (If you complete this minimum grade will be 9)
 
 ## Resources
 
